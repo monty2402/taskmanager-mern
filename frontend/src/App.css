@@ -1,0 +1,93 @@
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* Center app */
+.app {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Glass card */
+.glass-container {
+  width: 360px;
+  padding: 25px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  color: white;
+  text-align: center;
+}
+
+/* Title */
+h1 {
+  margin-bottom: 10px;
+}
+
+/* Input section */
+.input-box {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.input-box input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+}
+
+/* Button */
+.input-box button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #10b981;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.input-box button:hover {
+  background: #059669;
+}
+
+/* Task list */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Task item */
+.task {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: 0.2s;
+}
+
+/* Completed task */
+.task.done span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Delete button */
+.task button {
+  background: transparent;
+  border: none;
+  color: #ff4d4d;
+  font-size: 16px;
+  cursor: pointer;
+}
