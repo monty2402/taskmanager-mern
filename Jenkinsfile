@@ -34,7 +34,7 @@ pipeline {
                         sh """
                         echo "🚀 Deploying new container..."
 
-                        docker rm -f $CONTAINER_NAME || true
+                        docke rm -f $CONTAINER_NAME || true
 
                         docker run -d \
                             -p 3000:3000 \
@@ -66,7 +66,7 @@ pipeline {
 
                         echo "🔁 Restoring last stable image: $lastGood"
 
-                        docke run -d \
+                        docker run -d \
                             -p 3000:3000 \
                             --name $CONTAINER_NAME \
                             $lastGood
