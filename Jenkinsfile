@@ -27,7 +27,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: "dockerhub-creds",
+                    credentialsId: "2d34f3ea-4437-4dfa-be2c-3e736859a702",
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
@@ -46,9 +46,6 @@ pipeline {
             steps {
                 sh """
                 echo "🚀 Deploying container..."
-
-                # Stop and remove old container
-                docker rm -f $CONTAINER_NAME || true
 
                 # Run new container
                 docker run -d -p 3000:3000 \
