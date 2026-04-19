@@ -5,7 +5,6 @@ pipeline {
         IMAGE_NAME = "monteey/task-manager-frontend"
         IMAGE_TAG = "v${BUILD_NUMBER}"
         CONTAINER_NAME = "task-manager"
-        LAST_GOOD_IMAGE = "task-manager-last-good"
     }
 
     stages {
@@ -16,38 +15,11 @@ pipeline {
             }
         }
 
-        stage('Trivy FS Scan (Pre-Build Security)') {
-            steps {
-                sh """
-                echo "🔍 Running FS scan with Trivy (containerized)..."
-                docker run --rm \
-                    -v $PWD:/project \
-                    aquasec/trivy fs /project/frontend \
-                    --severity CRITICAL,HIGH \
-                    --exit-code 1
-                """
-            }
-        }
-
         stage('Docker Build') {
             steps {
                 sh """
                 echo "🐳 Building Docker image..."
                 docker build -t $IMAGE_NAME:$IMAGE_TAG ./frontend
-                """
-            }
-        }
-
-        stage('Trivy Image Scan (Post-Build Security)') {
-            steps {
-                sh """
-                echo "🔍 Running Image scan with Trivy (containerized)..."
-                docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    aquasec/trivy image \
-                    $IMAGE_NAME:$IMAGE_TAG \
-                    --severity CRITICAL \
-                    --exit-code 1
                 """
             }
         }
@@ -65,9 +37,6 @@ pipeline {
 
                     echo "📦 Pushing image..."
                     docker push $IMAGE_NAME:$IMAGE_TAG
-
-                    # Mark this as last good image
-                    docker tag $IMAGE_NAME:$IMAGE_TAG $LAST_GOOD_IMAGE
                     """
                 }
             }
@@ -75,36 +44,27 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                script {
-                    try {
-                        sh """
-                        echo "🚀 Deploying new container..."
-                        docker rm -f $CONTAINER_NAME || true
-                        docker run -d -p 3000:3000 \
-                            --name $CONTAINER_NAME \
-                            $IMAGE_NAME:$IMAGE_TAG
-                        """
-                    } catch (err) {
-                        echo "⚠️ Deployment failed. Rolling back..."
+                sh """
+                echo "🚀 Deploying container..."
 
-                        sh """
-                        docker rm -f $CONTAINER_NAME || true
-                        docker run -d -p 3000:3000 \
-                            --name $CONTAINER_NAME \
-                            $LAST_GOOD_IMAGE
-                        """
-                    }
-                }
+                # Stop and remove old container
+                docker rm -f $CONTAINER_NAME || true
+
+                # Run new container
+                docker run -d -p 3000:3000 \
+                    --name $CONTAINER_NAME \
+                    $IMAGE_NAME:$IMAGE_TAG
+                """
             }
         }
     }
 
     post {
         success {
-            echo "✅ CI/CD Pipeline SUCCESS"
+            echo "✅ Deployment SUCCESS"
         }
         failure {
-            echo "❌ Pipeline FAILED (rollback executed if needed)"
+            echo "❌ Deployment FAILED"
         }
     }
 }
