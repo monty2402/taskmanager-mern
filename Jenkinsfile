@@ -66,7 +66,7 @@ pipeline {
 
                         echo "🔁 Restoring last stable image: $lastGood"
 
-                        docker run -d \
+                        docke run -d \
                             -p 3000:3000 \
                             --name $CONTAINER_NAME \
                             $lastGood
