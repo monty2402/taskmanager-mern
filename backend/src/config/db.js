@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const MONGO_URI = "mongodb://127.0.0.1:27017/taskmanager"; // 👈 HARD CODED
+    const MONGO_URI = process.env.MONGO_URI; // 👈 USING ENVIRONMENT VARIABLE
 
     console.log("Using URI:", MONGO_URI);
 
