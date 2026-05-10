@@ -40,55 +40,75 @@ pipeline {
             }
         }
 
-        stage('Deploy with Docker Compose') {
+        stage('Deploy with Auto Rollback') {
+    steps {
+        script {
 
-            steps {
+            try {
 
-                script {
+                sh """
+                echo "🚀 Stopping old containers..."
 
-                    try {
+                docker compose down || true
 
-                        sh """
-                        echo "🚀 Deploying Full Stack Application..."
+                echo "🚀 Starting new deployment..."
 
-                        docker compose down || true
+                docker compose up -d --build
 
-                        docker compose build
+                echo "⏳ Waiting for services..."
+                sleep 15
 
-                        docker compose up -d
-                        """
+                echo "🔍 Health check..."
 
-                        sh """
-                        echo "⏳ Waiting for services..."
-                        sleep 20
-                        """
+                curl -f http://localhost:3000 || exit 1
 
-                        sh """
-                        echo "🔍 Frontend Health Check..."
-                        curl -f http://localhost:3000
-                        """
+                echo "✅ Deployment successful"
 
-                        sh """
-                        echo "🔍 Backend Health Check..."
-                        curl -f http://localhost:5000 || exit 1
-                        """
+                echo "$IMAGE_TAG" > last-stable.txt
+                """
 
-                        echo "✅ Deployment Successful"
+            } catch (Exception e) {
 
-                    } catch (Exception e) {
+                echo "❌ Deployment failed"
 
-                        echo "❌ Deployment Failed"
+                sh """
+                echo "📜 Docker Compose Logs:"
+                docker compose logs
+                """
 
-                        sh """
-                        echo "📜 Docker Compose Logs:"
-                        docker compose logs
-                        """
+                def stableExists = sh(
+                    script: '[ -f last-stable.txt ] && echo yes || echo no',
+                    returnStdout: true
+                ).trim()
 
-                        error("Deployment failed")
-                    }
+                if (stableExists == "yes") {
+
+                    def lastStable = sh(
+                        script: 'cat last-stable.txt',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "🔁 Rolling back to stable version: ${lastStable}"
+
+                    sh """
+                    docker compose down || true
+
+                    docker image tag monteey/task-manager-frontend:${lastStable} monteey/task-manager-frontend:latest
+
+                    docker compose up -d
+                    """
+
+                } else {
+
+                    error("❌ No stable deployment available")
+
                 }
+
+                error("Deployment failed")
             }
         }
+    }
+}
     }
 
     post {
