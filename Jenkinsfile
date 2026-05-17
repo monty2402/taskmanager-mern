@@ -34,29 +34,34 @@ pipeline {
             def scannerHome = tool 'sonar-scanner'
 
             sh """
-            echo "🔍 Checking SonarQube + Postgres stack..."
+            echo "🔍 Checking SonarQube health..."
 
-            # Check if SonarQube is actually responding
-            if ! curl -s http://localhost:9000 | grep -q "SonarQube"; then
+            # Step 1: check real health API (not homepage)
+            STATUS=\$(curl -s http://localhost:9000/api/system/status | grep -o 'UP' || true)
 
-                echo "⚠️ SonarQube not ready. Restarting DevSecOps stack..."
+            if [ "\$STATUS" != "UP" ]; then
+                echo "⚠️ SonarQube NOT healthy. Rebuilding stack..."
 
-                docker compose -f docker-compose.yml down || true
+                docker compose -f docker-compose.yml down -v || true
+                docker rm -f sonarqube sonarqube-db || true
+
                 docker compose -f docker-compose.yml up -d
 
-                echo "⏳ Waiting for Postgres + SonarQube to initialize..."
+                echo "⏳ Waiting for SonarQube to be UP..."
 
-                # wait until HTTP endpoint is live
                 for i in \$(seq 1 30); do
-                    if curl -s http://localhost:9000 | grep -q "SonarQube"; then
+                    STATUS=\$(curl -s http://localhost:9000/api/system/status | grep -o 'UP' || true)
+
+                    if [ "\$STATUS" = "UP" ]; then
                         echo "✅ SonarQube is UP"
                         break
                     fi
+
                     echo "Waiting... attempt \$i"
                     sleep 10
                 done
             else
-                echo "✅ SonarQube already running"
+                echo "✅ SonarQube already healthy"
             fi
             """
 
@@ -73,6 +78,7 @@ pipeline {
             }
         }
     }
+}
 }
 
         stage('Build Backend Image') {
