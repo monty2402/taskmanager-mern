@@ -27,6 +27,25 @@ pipeline {
             }
         }
 
+        stage('Ensure SonarQube Running') {
+    steps {
+        sh '''
+        echo "🔍 Checking SonarQube..."
+
+        if ! docker ps | grep -q sonarqube; then
+            echo "🚀 SonarQube not running. Starting..."
+            docker compose up -d sonarqube postgres
+            sleep 30
+        else
+            echo "✅ SonarQube already running"
+        fi
+
+        echo "🔎 Testing SonarQube API..."
+        curl -f http://localhost:9000/api/system/status || exit 1
+        '''
+    }
+}
+
         stage('SonarQube Analysis') {
     steps {
         script {
