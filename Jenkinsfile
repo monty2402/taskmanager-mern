@@ -11,7 +11,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'feature', url: 'https://github.com/monty2402/taskmanager-mern.git'
+                git branch: 'main', url: 'https://github.com/monty2402/taskmanager-mern.git'
             }
         }
 
@@ -85,11 +85,11 @@ pipeline {
                         sh """
                         echo "🚀 Stopping old containers..."
 
-                        docker compose -f docker-compose.staging.yml down || true
+                        docker compose -f docker-compose.yml down || true
 
                         echo "🚀 Starting new deployment..."
 
-                        docker compose -f docker-compose.staging.yml up -d --build
+                        docker compose -f docker-compose.yml up -d --build
 
                         echo "⏳ Waiting for services..."
                         sleep 15
@@ -109,7 +109,7 @@ pipeline {
 
                         sh """
                         echo "📜 Docker Compose Logs:"
-                        docker compose -f docker-compose.staging.yml logs
+                        docker compose -f docker-compose.yml logs
                         """
 
                         def stableExists = sh(
@@ -127,11 +127,11 @@ pipeline {
                             echo "🔁 Rolling back to stable version: ${lastStable}"
 
                             sh """
-                            docker compose -f docker-compose.staging.yml down || true
+                            docker compose -f docker-compose.yml down || true
 
                             docker image tag monteey/task-manager-frontend:${lastStable} monteey/task-manager-frontend:latest
 
-                            docker compose -f docker-compose.staging.yml up -d
+                            docker compose -f docker-compose.yml up -d
                             """
                         }
 
