@@ -37,7 +37,7 @@ pipeline {
                         ${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=taskmanager-mern \
                         -Dsonar.sources=. \
-                        -Dsonar.host.url=http://sonarqube:9000 \
+                        -Dsonar.host.url=http://localhost:9000 \
                         -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
                         """
                     }
