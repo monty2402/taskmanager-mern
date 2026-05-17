@@ -11,7 +11,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/monty2402/taskmanager-mern.git'
+                git branch: 'feature', url: 'https://github.com/monty2402/taskmanager-mern.git'
             }
         }
 
