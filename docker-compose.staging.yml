@@ -1,7 +1,7 @@
 services:
 
   backend-staging:
-    image: monty/taskmanager-backend:staging
+    image: monteey/task-manager-backend:staging
 
     container_name: task-backend-staging
 
@@ -20,7 +20,7 @@ services:
 
 
   frontend-staging:
-    image: monty/taskmanager-frontend:staging
+    image: monteey/task-manager-frontend:staging
 
     container_name: task-frontend-staging
 

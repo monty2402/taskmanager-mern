@@ -57,6 +57,25 @@ pipeline {
             }
         }
 
+        stage('Docker Login Verify') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            sh '''
+            echo "🔐 Logging into DockerHub..."
+
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+            echo "✅ Login test completed"
+            docker info | grep Username || true
+            '''
+        }
+    }
+}
+
         stage('Deploy with Auto Rollback') {
             steps {
                 script {
