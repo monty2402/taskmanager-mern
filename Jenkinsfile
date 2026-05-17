@@ -43,7 +43,7 @@ pipeline {
                         -Dsonar.projectKey=taskmanager-mern \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=http://localhost:9000 \
-                        -Dsonar.token=sqa_906aa3f2b00c9c0bc546e39785e8465c1e84b13b
+                        -Dsonar.token=squ_15d9ff07b326382386519090aea82f1ae0fb731f
                         """
                     }
                 }
