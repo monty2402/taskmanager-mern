@@ -4,7 +4,6 @@ pipeline {
     environment {
         FRONTEND_IMAGE = "monteey/task-manager-frontend"
         BACKEND_IMAGE  = "monteey/task-manager-backend"
-
         IMAGE_TAG = "v${BUILD_NUMBER}"
     }
 
@@ -12,7 +11,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/monty2402/taskmanager-mern.git'
+                git branch: 'feature', url: 'https://github.com/monty2402/taskmanager-mern.git'
             }
         }
 
@@ -28,6 +27,24 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.projectKey=taskmanager-mern \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Build Backend Image') {
             steps {
                 sh """
@@ -40,75 +57,89 @@ pipeline {
             }
         }
 
-        stage('Deploy with Auto Rollback') {
+        stage('Docker Login Verify') {
     steps {
-        script {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+        )]) {
+            sh '''
+            echo "🔐 Logging into DockerHub..."
 
-            try {
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                sh """
-                echo "🚀 Stopping old containers..."
-
-                docker compose down || true
-
-                echo "🚀 Starting new deployment..."
-
-                docker compose up -d --build
-
-                echo "⏳ Waiting for services..."
-                sleep 15
-
-                echo "🔍 Health check..."
-
-                curl -f http://localhost:3000 || exit 1
-
-                echo "✅ Deployment successful"
-
-                echo "$IMAGE_TAG" > last-stable.txt
-                """
-
-            } catch (Exception e) {
-
-                echo "❌ Deployment failed"
-
-                sh """
-                echo "📜 Docker Compose Logs:"
-                docker compose logs
-                """
-
-                def stableExists = sh(
-                    script: '[ -f last-stable.txt ] && echo yes || echo no',
-                    returnStdout: true
-                ).trim()
-
-                if (stableExists == "yes") {
-
-                    def lastStable = sh(
-                        script: 'cat last-stable.txt',
-                        returnStdout: true
-                    ).trim()
-
-                    echo "🔁 Rolling back to stable version: ${lastStable}"
-
-                    sh """
-                    docker compose down || true
-
-                    docker image tag monteey/task-manager-frontend:${lastStable} monteey/task-manager-frontend:latest
-
-                    docker compose up -d
-                    """
-
-                } else {
-
-                    error("❌ No stable deployment available")
-
-                }
-
-                error("Deployment failed")
-            }
+            echo "✅ Login test completed"
+            docker info | grep Username || true
+            '''
         }
     }
 }
+
+        stage('Deploy with Auto Rollback') {
+            steps {
+                script {
+
+                    try {
+
+                        sh """
+                        echo "🚀 Stopping old containers..."
+
+                        docker compose -f docker-compose.staging.yml down || true
+
+                        echo "🚀 Starting new deployment..."
+
+                        docker compose -f docker-compose.staging.yml up -d --build
+
+                        echo "⏳ Waiting for services..."
+                        sleep 15
+
+                        echo "🔍 Health check..."
+
+                        curl -f http://localhost:3000 || exit 1
+
+                        echo "✅ Deployment successful"
+
+                        echo "$IMAGE_TAG" > last-stable.txt
+                        """
+
+                    } catch (Exception e) {
+
+                        echo "❌ Deployment failed"
+
+                        sh """
+                        echo "📜 Docker Compose Logs:"
+                        docker compose -f docker-compose.staging.yml logs
+                        """
+
+                        def stableExists = sh(
+                            script: '[ -f last-stable.txt ] && echo yes || echo no',
+                            returnStdout: true
+                        ).trim()
+
+                        if (stableExists == "yes") {
+
+                            def lastStable = sh(
+                                script: 'cat last-stable.txt',
+                                returnStdout: true
+                            ).trim()
+
+                            echo "🔁 Rolling back to stable version: ${lastStable}"
+
+                            sh """
+                            docker compose -f docker-compose.staging.yml down || true
+
+                            docker image tag monteey/task-manager-frontend:${lastStable} monteey/task-manager-frontend:latest
+
+                            docker compose -f docker-compose.staging.yml up -d
+                            """
+                        }
+
+                        error("Deployment failed")
+                    }
+                }
+            }
+        }
     }
 
     post {
@@ -123,7 +154,6 @@ pipeline {
 
         always {
             echo "🧹 Cleaning unused Docker resources..."
-
             sh "docker system prune -f || true"
         }
     }
