@@ -41,8 +41,8 @@ pipeline {
 
                 echo "⚠️ SonarQube not ready. Restarting DevSecOps stack..."
 
-                docker compose -f docker-compose.devsecops.yml down || true
-                docker compose -f docker-compose.devsecops.yml up -d
+                docker compose -f docker-compose.yml down || true
+                docker compose -f docker-compose.yml up -d
 
                 echo "⏳ Waiting for Postgres + SonarQube to initialize..."
 
