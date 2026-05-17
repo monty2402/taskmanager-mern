@@ -4,7 +4,6 @@ pipeline {
     environment {
         FRONTEND_IMAGE = "monteey/task-manager-frontend"
         BACKEND_IMAGE  = "monteey/task-manager-backend"
-
         IMAGE_TAG = "v${BUILD_NUMBER}"
     }
 
@@ -28,23 +27,23 @@ pipeline {
             }
         }
 
-stage('SonarQube Analysis') {
-    steps {
-        script {
-            def scannerHome = tool 'sonar-scanner'
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
 
-            withSonarQubeEnv('sonarqube') {
-                sh """
-                ${scannerHome}/bin/sonar-scanner \
-                -Dsonar.projectKey=taskmanager-mern \
-                -Dsonar.sources=. \
-                -Dsonar.host.url=http://localhost:9000 \
-                -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
-                """
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.projectKey=taskmanager-mern \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
+                        """
+                    }
+                }
             }
         }
-    }
-}
 
         stage('Build Backend Image') {
             steps {
@@ -59,74 +58,69 @@ stage('SonarQube Analysis') {
         }
 
         stage('Deploy with Auto Rollback') {
-    steps {
-        script {
+            steps {
+                script {
 
-            try {
+                    try {
 
-                sh """
-                echo "🚀 Stopping old containers..."
+                        sh """
+                        echo "🚀 Stopping old containers..."
 
-                docker compose down || true
+                        docker compose -f docker-compose.staging.yml down || true
 
-                echo "🚀 Starting new deployment..."
+                        echo "🚀 Starting new deployment..."
 
-                docker compose up -d --build
+                        docker compose -f docker-compose.staging.yml up -d --build
 
-                echo "⏳ Waiting for services..."
-                sleep 15
+                        echo "⏳ Waiting for services..."
+                        sleep 15
 
-                echo "🔍 Health check..."
+                        echo "🔍 Health check..."
 
-                curl -f http://localhost:3000 || exit 1
+                        curl -f http://localhost:3000 || exit 1
 
-                echo "✅ Deployment successful"
+                        echo "✅ Deployment successful"
 
-                echo "$IMAGE_TAG" > last-stable.txt
-                """
+                        echo "$IMAGE_TAG" > last-stable.txt
+                        """
 
-            } catch (Exception e) {
+                    } catch (Exception e) {
 
-                echo "❌ Deployment failed"
+                        echo "❌ Deployment failed"
 
-                sh """
-                echo "📜 Docker Compose Logs:"
-                docker compose logs
-                """
+                        sh """
+                        echo "📜 Docker Compose Logs:"
+                        docker compose -f docker-compose.staging.yml logs
+                        """
 
-                def stableExists = sh(
-                    script: '[ -f last-stable.txt ] && echo yes || echo no',
-                    returnStdout: true
-                ).trim()
+                        def stableExists = sh(
+                            script: '[ -f last-stable.txt ] && echo yes || echo no',
+                            returnStdout: true
+                        ).trim()
 
-                if (stableExists == "yes") {
+                        if (stableExists == "yes") {
 
-                    def lastStable = sh(
-                        script: 'cat last-stable.txt',
-                        returnStdout: true
-                    ).trim()
+                            def lastStable = sh(
+                                script: 'cat last-stable.txt',
+                                returnStdout: true
+                            ).trim()
 
-                    echo "🔁 Rolling back to stable version: ${lastStable}"
+                            echo "🔁 Rolling back to stable version: ${lastStable}"
 
-                    sh """
-                    docker compose down || true
+                            sh """
+                            docker compose -f docker-compose.staging.yml down || true
 
-                    docker image tag monteey/task-manager-frontend:${lastStable} monteey/task-manager-frontend:latest
+                            docker image tag monteey/task-manager-frontend:${lastStable} monteey/task-manager-frontend:latest
 
-                    docker compose -f docker-compose.staging.yml up -d
-                    """
+                            docker compose -f docker-compose.staging.yml up -d
+                            """
+                        }
 
-                } else {
-
-                    error("❌ No stable deployment available")
-
+                        error("Deployment failed")
+                    }
                 }
-
-                error("Deployment failed")
             }
         }
-    }
-}
     }
 
     post {
@@ -141,7 +135,6 @@ stage('SonarQube Analysis') {
 
         always {
             echo "🧹 Cleaning unused Docker resources..."
-
             sh "docker system prune -f || true"
         }
     }
