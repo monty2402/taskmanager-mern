@@ -28,22 +28,52 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'sonar-scanner'
+    steps {
+        script {
 
-                    withSonarQubeEnv('sonarqube') {
-                        sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=taskmanager-mern \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=http://localhost:9000 \
-                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
-                        """
-                    }
-                }
+            def scannerHome = tool 'sonar-scanner'
+
+            sh """
+            echo "🔍 Checking SonarQube + Postgres stack..."
+
+            # Check if SonarQube is actually responding
+            if ! curl -s http://localhost:9000 | grep -q "SonarQube"; then
+
+                echo "⚠️ SonarQube not ready. Restarting DevSecOps stack..."
+
+                docker compose -f docker-compose.devsecops.yml down || true
+                docker compose -f docker-compose.devsecops.yml up -d
+
+                echo "⏳ Waiting for Postgres + SonarQube to initialize..."
+
+                # wait until HTTP endpoint is live
+                for i in \$(seq 1 30); do
+                    if curl -s http://localhost:9000 | grep -q "SonarQube"; then
+                        echo "✅ SonarQube is UP"
+                        break
+                    fi
+                    echo "Waiting... attempt \$i"
+                    sleep 10
+                done
+            else
+                echo "✅ SonarQube already running"
+            fi
+            """
+
+            withSonarQubeEnv('sonarqube') {
+                sh """
+                echo "🚀 Running SonarQube Scanner..."
+
+                ${scannerHome}/bin/sonar-scanner \
+                -Dsonar.projectKey=taskmanager-mern \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=http://localhost:9000 \
+                -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
+                """
             }
         }
+    }
+}
 
         stage('Build Backend Image') {
             steps {
