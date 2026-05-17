@@ -28,6 +28,20 @@ pipeline {
             }
         }
 
+        stage('sonarQube Analysis') {
+            steps {
+                sh """
+                echo "🔍 Running SonarQube Analysis..."
+
+                sonar-scanner \
+                    -Dsonar.projectKey=taskmanager-mern \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=http://localhost:9000 \
+                    -Dsonar.login=sqp_8e42f7a4ee6335a3eacc088f40d9239b08f7a076
+                """
+            }
+        }
+
         stage('Build Backend Image') {
             steps {
                 sh """
