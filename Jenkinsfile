@@ -82,7 +82,7 @@ pipeline {
                         -Dsonar.projectKey=taskmanager-mern \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=${SONAR_HOST} \
-                        -Dsonar.login=\$SONAR_TOKEN
+                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
                         """
                     }
                 }
