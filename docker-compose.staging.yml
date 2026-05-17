@@ -9,7 +9,6 @@ services:
       - "5001:5000"
 
     environment:
-      MONGO_URI: mongodb://root:password@mongo:27017/taskdb?authSource=admin
       NODE_ENV: staging
       PORT: 5000
 
