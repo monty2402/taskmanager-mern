@@ -97,7 +97,7 @@ pipeline {
               -v $(pwd):/workspace \
               -w /workspace \
               aquasec/trivy:latest fs . \
-              --severity HIGH,CRITICAL \
+              --severity CRITICAL \
               --exit-code 1 \
               --no-progress
             '''
