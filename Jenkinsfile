@@ -82,12 +82,28 @@ pipeline {
                         -Dsonar.projectKey=taskmanager-mern \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=${SONAR_HOST} \
-                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
+                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a   
                         """
                     }
                 }
             }
         }
+
+        stage('Trivy Filesystem Scan') {
+    steps {
+        script {
+            sh '''
+            docker run --rm \
+              -v $(pwd):/workspace \
+              -w /workspace \
+              aquasec/trivy:latest fs . \
+              --severity HIGH,CRITICAL \
+              --exit-code 1 \
+              --no-progress
+            '''
+        }
+    }
+}
 
         stage('Build Backend Image') {
             steps {
