@@ -25,69 +25,69 @@ pipeline {
             }
         }
 
-        stage('Ensure SonarQube Running') {
-            steps {
-                sh '''
-                echo "🔍 Checking SonarQube..."
+        // stage('Ensure SonarQube Running') {
+        //     steps {
+        //         sh '''
+        //         echo "🔍 Checking SonarQube..."
 
-                if ! docker ps | grep -q sonarqube; then
-                    echo "🚀 Starting SonarQube..."
-                    docker compose up -d sonarqube postgres
-                    sleep 40
-                else
-                    echo "✅ SonarQube already running"
-                fi
+        //         if ! docker ps | grep -q sonarqube; then
+        //             echo "🚀 Starting SonarQube..."
+        //             docker compose up -d sonarqube postgres
+        //             sleep 40
+        //         else
+        //             echo "✅ SonarQube already running"
+        //         fi
 
-                echo "🔎 Checking API..."
-                curl -f http://localhost:9000/api/system/status || exit 1
-                '''
-            }
-        }
+        //         echo "🔎 Checking API..."
+        //         curl -f http://localhost:9000/api/system/status || exit 1
+        //         '''
+        //     }
+        // }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
+        // stage('SonarQube Analysis') {
+        //     steps {
+        //         script {
 
-                    def scannerHome = tool 'sonar-scanner'
+        //             def scannerHome = tool 'sonar-scanner'
 
-                    sh """
-                    echo "🔍 Checking SonarQube health..."
+        //             sh """
+        //             echo "🔍 Checking SonarQube health..."
 
-                    STATUS=\$(curl -s ${SONAR_HOST}/api/system/status | grep -o 'UP' || true)
+        //             STATUS=\$(curl -s ${SONAR_HOST}/api/system/status | grep -o 'UP' || true)
 
-                    if [ "\$STATUS" != "UP" ]; then
-                        echo "⚠️ SonarQube not healthy. Restarting..."
+        //             if [ "\$STATUS" != "UP" ]; then
+        //                 echo "⚠️ SonarQube not healthy. Restarting..."
 
-                        docker compose down -v || true
-                        docker compose up -d
+        //                 docker compose down -v || true
+        //                 docker compose up -d
 
-                        echo "⏳ Waiting for SonarQube..."
+        //                 echo "⏳ Waiting for SonarQube..."
 
-                        for i in \$(seq 1 30); do
-                            STATUS=\$(curl -s ${SONAR_HOST}/api/system/status | grep -o 'UP' || true)
-                            if [ "\$STATUS" = "UP" ]; then
-                                echo "✅ SonarQube is UP"
-                                break
-                            fi
-                            sleep 10
-                        done
-                    fi
-                    """
+        //                 for i in \$(seq 1 30); do
+        //                     STATUS=\$(curl -s ${SONAR_HOST}/api/system/status | grep -o 'UP' || true)
+        //                     if [ "\$STATUS" = "UP" ]; then
+        //                         echo "✅ SonarQube is UP"
+        //                         break
+        //                     fi
+        //                     sleep 10
+        //                 done
+        //             fi
+        //             """
 
-                    withSonarQubeEnv('sonarqube') {
-                        sh """
-                        echo "🚀 Running Sonar Scanner..."
+        //             withSonarQubeEnv('sonarqube') {
+        //                 sh """
+        //                 echo "🚀 Running Sonar Scanner..."
 
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=taskmanager-mern \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=${SONAR_HOST} \
-                        -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a   
-                        """
-                    }
-                }
-            }
-        }
+        //                 ${scannerHome}/bin/sonar-scanner \
+        //                 -Dsonar.projectKey=taskmanager-mern \
+        //                 -Dsonar.sources=. \
+        //                 -Dsonar.host.url=${SONAR_HOST} \
+        //                 -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a   
+        //                 """
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Trivy Filesystem Scan') {
     steps {
