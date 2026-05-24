@@ -16,14 +16,6 @@ pipeline {
             }
         }
 
-        stage('Build Frontend Image') {
-            steps {
-                sh """
-                echo "🐳 Building Frontend Image..."
-                docker build -t $FRONTEND_IMAGE:$IMAGE_TAG ./frontend
-                """
-            }
-        }
 
         // stage('Ensure SonarQube Running') {
         //     steps {
@@ -104,6 +96,14 @@ pipeline {
         }
     }
 }
+        stage('Build Frontend Image') {
+            steps {
+                sh """
+                echo "🐳 Building Frontend Image..."
+                docker build -t $FRONTEND_IMAGE:$IMAGE_TAG ./frontend
+                """
+            }
+        }
 
         stage('Build Backend Image') {
             steps {
