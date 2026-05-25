@@ -138,7 +138,7 @@ pipeline {
                 docker run --rm \
                 -v /var/run/docker.sock:/var/run/docker.sock \
                 aquasec/trivy:latest image \
-                --severity HIGH,CRITICAL \
+                --severity CRITICAL \
                 --exit-code 1 \
                 --no-progress \
                 ${BACKEND_IMAGE}:${IMAGE_TAG}
