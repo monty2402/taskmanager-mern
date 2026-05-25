@@ -16,7 +16,6 @@ pipeline {
             }
         }
 
-
         // stage('Ensure SonarQube Running') {
         //     steps {
         //         sh '''
@@ -74,7 +73,7 @@ pipeline {
         //                 -Dsonar.projectKey=taskmanager-mern \
         //                 -Dsonar.sources=. \
         //                 -Dsonar.host.url=${SONAR_HOST} \
-        //                 -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a   
+        //                 -Dsonar.login=squ_c487cc48984f810bb95fe0cceb293760cf5b5e2a
         //                 """
         //             }
         //         }
@@ -82,20 +81,21 @@ pipeline {
         // }
 
         stage('Trivy Filesystem Scan') {
-    steps {
-        script {
-            sh '''
-            docker run --rm \
-              -v $(pwd):/workspace \
-              -w /workspace \
-              aquasec/trivy:latest fs . \
-              --severity CRITICAL \
-              --exit-code 1 \
-              --no-progress
-            '''
+            steps {
+                script {
+                    sh '''
+                    docker run --rm \
+                      -v $(pwd):/workspace \
+                      -w /workspace \
+                      aquasec/trivy:latest fs . \
+                      --severity CRITICAL \
+                      --exit-code 1 \
+                      --no-progress
+                    '''
+                }
+            }
         }
-    }
-}
+
         stage('Build Frontend Image') {
             steps {
                 sh """
@@ -110,6 +110,38 @@ pipeline {
                 sh """
                 echo "🐳 Building Backend Image..."
                 docker build -t $BACKEND_IMAGE:$IMAGE_TAG ./backend
+                """
+            }
+        }
+
+        stage('Trivy Frontend Image Scan') {
+            steps {
+                sh """
+                echo "🔍 Scanning Frontend Docker Image..."
+
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy:latest image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --no-progress \
+                ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Trivy Backend Image Scan') {
+            steps {
+                sh """
+                echo "🔍 Scanning Backend Docker Image..."
+
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy:latest image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --no-progress \
+                ${BACKEND_IMAGE}:${IMAGE_TAG}
                 """
             }
         }
