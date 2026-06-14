@@ -25,16 +25,13 @@ stages {
                 def scannerHome = tool 'sonar-scanner'
 
                 withCredentials([
-                    string(
-                        credentialsId: 'sonar-token',
-                        variable: 'SONAR_TOKEN'
-                    )
+                    string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')
                 ]) {
 
                     withSonarQubeEnv('sonarqube') {
 
                         sh """
-                        echo "🚀 Running SonarQube Analysis..."
+                        echo "Running SonarQube Analysis..."
 
                         ${scannerHome}/bin/sonar-scanner \
                           -Dsonar.projectKey=taskmanager-mern \
@@ -51,14 +48,14 @@ stages {
     stage('Trivy Filesystem Scan') {
         steps {
             sh """
-            echo "🔍 Running Trivy Filesystem Scan..."
+            echo "Scanning Filesystem..."
 
             docker run --rm \
               -v \$(pwd):/workspace \
               -w /workspace \
               aquasec/trivy:latest fs \
-              --severity HIGH,CRITICAL \
-              --exit-code 0 \
+              --severity CRITICAL \
+              --exit-code 1 \
               .
             """
         }
@@ -67,7 +64,7 @@ stages {
     stage('Build Frontend Image') {
         steps {
             sh """
-            echo "🐳 Building Frontend Image..."
+            echo "Building Frontend Image..."
 
             docker build \
               -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
@@ -79,7 +76,7 @@ stages {
     stage('Build Backend Image') {
         steps {
             sh """
-            echo "🐳 Building Backend Image..."
+            echo "Building Backend Image..."
 
             docker build \
               -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
@@ -91,14 +88,8 @@ stages {
     stage('Verify Images') {
         steps {
             sh """
-            echo "📦 Verifying Docker Images..."
-
-            docker images | grep task-manager-frontend || true
-            docker images | grep task-manager-backend || true
-
-            echo "FRONTEND_IMAGE=${FRONTEND_IMAGE}"
-            echo "BACKEND_IMAGE=${BACKEND_IMAGE}"
-            echo "IMAGE_TAG=${IMAGE_TAG}"
+            docker images | grep task-manager-frontend
+            docker images | grep task-manager-backend
             """
         }
     }
@@ -106,13 +97,13 @@ stages {
     stage('Trivy Frontend Image Scan') {
         steps {
             sh """
-            echo "🔍 Scanning Frontend Docker Image..."
+            echo "Scanning Frontend Image..."
 
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
               aquasec/trivy:latest image \
               --severity HIGH,CRITICAL \
-              --exit-code 0 \
+              --exit-code 1 \
               ${FRONTEND_IMAGE}:${IMAGE_TAG}
             """
         }
@@ -121,13 +112,13 @@ stages {
     stage('Trivy Backend Image Scan') {
         steps {
             sh """
-            echo "🔍 Scanning Backend Docker Image..."
+            echo "Scanning Backend Image..."
 
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
               aquasec/trivy:latest image \
               --severity HIGH,CRITICAL \
-              --exit-code 0 \
+              --exit-code 1 \
               ${BACKEND_IMAGE}:${IMAGE_TAG}
             """
         }
@@ -135,7 +126,6 @@ stages {
 
     stage('Docker Login') {
         steps {
-
             withCredentials([
                 usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -145,8 +135,6 @@ stages {
             ]) {
 
                 sh """
-                echo "🔐 Logging into Docker Hub..."
-
                 echo "${DOCKER_PASS}" | docker login \
                 -u "${DOCKER_USER}" \
                 --password-stdin
@@ -157,47 +145,38 @@ stages {
 
     stage('Push Images') {
         steps {
-
             sh """
-            echo "📤 Pushing Frontend Image..."
+            echo "Pushing Frontend Image..."
             docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
 
-            echo "📤 Pushing Backend Image..."
+            echo "Pushing Backend Image..."
             docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
             """
         }
     }
 
     stage('Deploy with Auto Rollback') {
-
         steps {
-
             script {
 
                 try {
 
                     sh """
-                    echo "🚀 Deploying Application..."
+                    echo "Deploying Application..."
 
                     docker compose down || true
                     docker compose up -d
 
-                    echo "⏳ Waiting for containers..."
                     sleep 20
-
-                    echo "🩺 Running Health Check..."
 
                     curl -f http://localhost:3000
 
                     echo "${IMAGE_TAG}" > last-stable.txt
-
-                    echo "✅ Deployment Successful"
                     """
 
                 } catch (Exception e) {
 
-                    echo "❌ Deployment Failed"
-                    echo "🔁 Starting Rollback"
+                    echo "Deployment Failed. Starting Rollback..."
 
                     sh "docker compose logs || true"
 
@@ -212,8 +191,6 @@ stages {
                             script: 'cat last-stable.txt',
                             returnStdout: true
                         ).trim()
-
-                        echo "Rolling Back To ${lastStable}"
 
                         sh """
                         docker compose down || true
@@ -230,7 +207,7 @@ stages {
                         """
                     }
 
-                    error("Deployment Failed After Rollback")
+                    error("Deployment failed after rollback")
                 }
             }
         }
@@ -240,19 +217,15 @@ stages {
 post {
 
     success {
-        echo "✅ Pipeline Completed Successfully"
+        echo "Pipeline Completed Successfully"
     }
 
     failure {
-        echo "❌ Pipeline Failed"
+        echo "Pipeline Failed"
     }
 
     always {
-
-        sh """
-        echo "🧹 Cleaning Docker Resources..."
-        docker system prune -f || true
-        """
+        sh "docker system prune -f || true"
     }
 }
 ```
